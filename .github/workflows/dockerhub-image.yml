@@ -13,8 +13,28 @@ permissions:
   contents: read
 
 jobs:
+  credentials:
+    name: Docker Hub credentials
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [[ -n "$USERNAME" && -n "$TOKEN" ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo 'Docker Hub publication skipped: configure DOCKERHUB_USERNAME and DOCKERHUB_TOKEN.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   build_dockerhub_image:
     name: Build (${{ matrix.arch }})
+    needs: credentials
+    if: needs.credentials.outputs.available == 'true'
     strategy:
       fail-fast: false
       matrix:
